@@ -2,6 +2,7 @@
 /* eslint-disable no-param-reassign */
 import {
   GraphQLBoolean,
+  GraphQLEnumType,
   GraphQLFieldConfigArgumentMap,
   GraphQLFieldConfigMap,
   GraphQLFloat,
@@ -20,6 +21,7 @@ import {
 import {
   isArrayType,
   isBodyType,
+  isEnumType,
   isObjectType,
   JSONSchemaType,
 } from './json-schema';
@@ -36,6 +38,7 @@ const primitiveTypes = {
   integer: GraphQLInt,
   number: GraphQLFloat,
   boolean: GraphQLBoolean,
+  enum: GraphQLString,
 };
 
 const jsonType = new GraphQLScalarType({
@@ -85,7 +88,14 @@ export const jsonSchemaTypeToGraphQL = <IsInputType extends boolean>(
         gqlTypes,
       );
     }
-
+    if (isEnumType(jsonSchema)) {
+      return createGraphQLType(
+        jsonSchema,
+        `${title}_${propertyName}`,
+        isInputType,
+        gqlTypes,
+      );
+    }
     if (jsonSchema.type === 'file') {
       // eslint-disable-next-line no-use-before-define,@typescript-eslint/no-use-before-define
       return createGraphQLType(
@@ -99,7 +109,6 @@ export const jsonSchemaTypeToGraphQL = <IsInputType extends boolean>(
         gqlTypes,
       );
     }
-
     if (jsonSchema.type) {
       return getPrimitiveType(jsonSchema.format, jsonSchema.type);
     }
@@ -193,7 +202,14 @@ export const createGraphQLType = (
   } else if (!jsonSchema.title) {
     jsonSchema = { ...jsonSchema, title };
   }
-
+  if (isEnumType(jsonSchema)) {
+      return new GraphQLEnumType(
+        {
+          name: title,
+          values:jsonSchema.enum.reduce<any>((acc,curr) => (acc[curr] = {value: curr}, acc),{})
+        }
+      );
+    }
   if (isArrayType(jsonSchema)) {
     const itemsSchema = Array.isArray(jsonSchema.items)
       ? jsonSchema.items[0]

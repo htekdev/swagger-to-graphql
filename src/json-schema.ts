@@ -16,6 +16,10 @@ export interface BodySchema extends CommonSchema {
   required?: boolean;
 }
 
+export interface EnumSchema extends CommonSchema {
+  enum: string[];
+  required?: boolean;
+}
 export interface ObjectSchema extends CommonSchema {
   type: 'object';
   properties: {
@@ -44,9 +48,8 @@ export interface ScalarSchema extends CommonSchema {
   required?: boolean;
 }
 
-export type JSONSchemaNoBody = ObjectSchema | ArraySchema | ScalarSchema;
-
-export type JSONSchemaType = BodySchema | JSONSchemaNoBody;
+export type JSONSchemaNoBody = ObjectSchema | ArraySchema | ScalarSchema
+export type JSONSchemaType = BodySchema | JSONSchemaNoBody | EnumSchema;
 
 export const isBodyType = (
   jsonSchema: JSONSchemaType,
@@ -54,15 +57,23 @@ export const isBodyType = (
   Object.keys(jsonSchema).includes('in') &&
   (jsonSchema as BodySchema).in === 'body';
 
+export const isEnumType = (
+  jsonSchema: JSONSchemaType,
+): jsonSchema is EnumSchema =>
+  !isBodyType(jsonSchema) &&
+  Object.keys(jsonSchema).includes('enum');
+  
 export const isObjectType = (
   jsonSchema: JSONSchemaType,
 ): jsonSchema is ObjectSchema =>
   !isBodyType(jsonSchema) &&
+  !isEnumType(jsonSchema) &&
   (Object.keys(jsonSchema).includes('properties') ||
-    jsonSchema.type === 'object');
+  jsonSchema.type === 'object');
 
 export const isArrayType = (
   jsonSchema: JSONSchemaType,
 ): jsonSchema is ArraySchema =>
   !isBodyType(jsonSchema) &&
-  (Object.keys(jsonSchema).includes('items') || jsonSchema.type === 'array');
+  !isEnumType(jsonSchema) &&
+  jsonSchema.type === 'array';
